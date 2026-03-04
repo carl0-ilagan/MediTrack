@@ -1,0 +1,92 @@
+/* CarForm.css */
+
+/* --- Universal Form Styling --- */
+.car-form-content input, 
+.car-form-content textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.car-form-content .submit-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1em;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+/* --- Drag and Drop Area Styling --- */
+.drag-drop-area {
+  border: 2px dashed #007bff;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 20px;
+  background-color: #f9f9ff;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.drag-drop-area:hover {
+  background-color: #e6f0ff;
+  border-color: #0056b3;
+}
+
+.drag-drop-area.has-image {
+  border: 2px solid #28a745; /* Green border when file is dropped */
+  background-color: #e9fbe9;
+  color: #28a745;
+}
+
+/* --- Mobile View (Page) Styling --- */
+.car-form-page {
+  padding: 20px;
+  max-width: 100%; /* Full screen width on mobile */
+}
+
+/* --- Desktop View (Modal) Styling --- */
+@media (min-width: 768px) {
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .car-form-modal {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 500px; /* Constrained size for desktop modal */
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #555;
+  }
+}
