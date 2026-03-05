@@ -6,8 +6,10 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Activity, Eye, EyeOff } from 'lucide-react';
+import { useBranding } from '../../contexts/BrandingContext';
 
 export const Login = () => {
+  const { branding } = useBranding();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +17,9 @@ export const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const { login, isAdmin, isClinician, isPatient } = useAuth();
   const navigate = useNavigate();
+  const displayBrand = branding.brandName;
+  const displayShortBrand = branding.brandShortName;
+  const displaySystemSubtitle = branding.systemSubtitle;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,9 +108,13 @@ export const Login = () => {
           <div className="flex items-center justify-between h-16 gap-2">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
-              <Activity className="w-8 h-8 text-[#d2ffb6]" />
-              <span className="hidden sm:inline text-xl font-bold text-white">Clinic and Laboratory</span>
-              <span className="sm:hidden text-sm font-semibold text-white">Clinic Lab</span>
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-8 w-8 rounded-md object-cover" />
+              ) : (
+                <Activity className="w-8 h-8 text-[#d2ffb6]" />
+              )}
+              <span className="hidden sm:inline text-xl font-bold text-white">{displayBrand}</span>
+              <span className="sm:hidden text-sm font-semibold text-white">{displayShortBrand}</span>
             </Link>
 
             {/* Auth Buttons */}
@@ -132,11 +141,15 @@ export const Login = () => {
         <Card className="w-full max-w-md border-[#97E7F5] shadow-sm bg-white rounded-2xl">
         <CardHeader className="text-center">
           <div className="mb-4 flex items-center justify-center gap-2">
-            <Activity className="w-9 h-9 sm:w-10 sm:h-10 text-[#26B170]" />
-            <h1 className="text-xl sm:text-2xl font-semibold text-[#01377D]">Clinic and Laboratory</h1>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-9 w-9 rounded-md object-cover sm:h-10 sm:w-10" />
+            ) : (
+              <Activity className="w-9 h-9 sm:w-10 sm:h-10 text-[#26B170]" />
+            )}
+            <h1 className="text-xl sm:text-2xl font-semibold text-[#01377D]">{displayBrand}</h1>
           </div>
           <CardTitle className="text-[#01377D] font-semibold">Login</CardTitle>
-          <CardDescription className="text-[#009DD1]">Access your Clinic and Laboratory account</CardDescription>
+          <CardDescription className="text-[#009DD1]">Access your {displayBrand} account</CardDescription>
         </CardHeader>
         
         {errorMessage && (
@@ -223,24 +236,28 @@ export const Login = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Activity className="w-8 h-8 text-[#d2ffb6]" />
-                <span className="text-xl font-bold">Clinic and Laboratory</span>
+                {branding.logoUrl ? (
+                  <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-8 w-8 rounded-md object-cover" />
+                ) : (
+                  <Activity className="w-8 h-8 text-[#d2ffb6]" />
+                )}
+                <span className="text-xl font-bold">{displayBrand}</span>
               </div>
               <p className="text-[#97E7F5]">
-                Modern healthcare management system for better patient care and clinic operations.
+                {branding.footerDescription}
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Contact</h3>
               <ul className="space-y-2 text-[#97E7F5]">
-                <li>University Health Center</li>
-                <li>clinic@university.edu</li>
-                <li>(123) 456-7890</li>
+                <li>{displaySystemSubtitle}</li>
+                <li>{branding.contactEmail}</li>
+                <li>{branding.contactPhone}</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-[#009DD1] mt-8 pt-8 text-center text-[#97E7F5]">
-            <p>© 2025 Clinic and Laboratory. All rights reserved.</p>
+            <p>© 2025 {displayBrand}. All rights reserved.</p>
           </div>
         </div>
       </footer>

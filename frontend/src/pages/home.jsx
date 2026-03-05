@@ -15,6 +15,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import { useBranding } from '../contexts/BrandingContext';
 
 const navItems = [
   { id: 'home', label: 'Home' },
@@ -64,6 +65,7 @@ const serviceCards = [
 ];
 
 const Home = () => {
+  const { branding } = useBranding();
   const [activeSection, setActiveSection] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [serviceQuery, setServiceQuery] = useState('');
@@ -121,6 +123,10 @@ const Home = () => {
   }, [serviceQuery]);
 
   const focusedService = serviceCards.find((item) => item.id === selectedService) || serviceCards[0];
+  const displayBrand = branding.brandName;
+  const displayShortBrand = branding.brandShortName;
+  const displaySystemTitle = branding.systemTitle;
+  const displaySystemSubtitle = branding.systemSubtitle;
 
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
@@ -134,9 +140,13 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-2">
             <button className="flex items-center gap-2 cursor-pointer" onClick={() => scrollToSection('home')}>
-              <Activity className="w-8 h-8 text-[#d2ffb6]" />
-              <span className="hidden sm:inline text-xl font-bold text-white">Clinic and Laboratory</span>
-              <span className="sm:hidden text-sm font-semibold text-white">Clinic Lab</span>
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-8 w-8 rounded-md object-cover" />
+              ) : (
+                <Activity className="w-8 h-8 text-[#d2ffb6]" />
+              )}
+              <span className="hidden sm:inline text-xl font-bold text-white">{displayBrand}</span>
+              <span className="sm:hidden text-sm font-semibold text-white">{displayShortBrand}</span>
             </button>
             <nav className="hidden md:flex items-center gap-8">
               {navItems.map(({ id, label }) => (
@@ -228,8 +238,8 @@ const Home = () => {
                   <img src="https://i.pinimg.com/1200x/55/81/80/558180f961f4da7db384c55903ae464c.jpg" alt="Healthcare Management" className="w-full h-[600px] object-cover transform hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 flex items-end z-10">
                     <div className="p-4 text-[#009DD1] bg-white/90 w-full">
-                      <h3 className="text-lg font-bold">Clinic and Laboratory System</h3>
-                      <p className="text-sm opacity-90">University Health Services</p>
+                      <h3 className="text-lg font-bold">{displaySystemTitle}</h3>
+                      <p className="text-sm opacity-90">{displaySystemSubtitle}</p>
                     </div>
                   </div>
                 </div>
@@ -350,8 +360,15 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <div className="flex items-center gap-2 mb-4"><Activity className="w-8 h-8 text-[#7ED348]" /><span className="text-xl font-bold">Clinic and Laboratory</span></div>
-              <p className="text-[#97E7F5]">Modern healthcare management for better care and operations.</p>
+              <div className="flex items-center gap-2 mb-4">
+                {branding.logoUrl ? (
+                  <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-8 w-8 rounded-md object-cover" />
+                ) : (
+                  <Activity className="w-8 h-8 text-[#7ED348]" />
+                )}
+                <span className="text-xl font-bold">{displayBrand}</span>
+              </div>
+              <p className="text-[#97E7F5]">{branding.footerDescription}</p>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Quick Links</h3>
@@ -363,10 +380,10 @@ const Home = () => {
             </div>
             <div>
               <h3 className="font-semibold mb-4">Contact</h3>
-              <ul className="space-y-2 text-[#97E7F5]"><li>University Health Center</li><li>clinic@university.edu</li><li>(123) 456-7890</li></ul>
+              <ul className="space-y-2 text-[#97E7F5]"><li>{displaySystemSubtitle}</li><li>{branding.contactEmail}</li><li>{branding.contactPhone}</li></ul>
             </div>
           </div>
-          <div className="border-t border-[#009DD1] mt-8 pt-8 text-center text-[#97E7F5]"><p>© 2025 Clinic and Laboratory. All rights reserved.</p></div>
+          <div className="border-t border-[#009DD1] mt-8 pt-8 text-center text-[#97E7F5]"><p>© 2025 {displayBrand}. All rights reserved.</p></div>
         </div>
       </footer>
     </div>

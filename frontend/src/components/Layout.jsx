@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useBranding } from '../contexts/BrandingContext';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import {
@@ -38,6 +39,7 @@ import {
 
 export const Layout = ({ children }) => {
   const { user, logout, loading, isAdmin, isClinician, isPatient } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -105,6 +107,7 @@ export const Layout = ({ children }) => {
   const navItems = getNavItems();
   const isSidebarCollapsed = sidebarCollapsed;
   const roleLabel = isAdmin ? 'Admin' : isClinician ? 'Clinician' : isPatientLayout ? 'Patient' : 'User';
+  const displayBrand = branding.brandName;
 
   const handlePatientMainScroll = (event) => {
     const currentTop = event.currentTarget.scrollTop;
@@ -182,8 +185,12 @@ export const Layout = ({ children }) => {
         <header className="fixed inset-x-0 top-0 z-50 border-b border-[#dbeafe]/80 bg-white/75 backdrop-blur-xl">
           <div className="h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-[#009DD1]" />
-              <span className="hidden sm:inline text-base font-semibold text-[#01377D]">Clinic and Laboratory</span>
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-7 w-7 rounded-md object-cover" />
+              ) : (
+                <Activity className="w-6 h-6 text-[#009DD1]" />
+              )}
+              <span className="hidden sm:inline text-base font-semibold text-[#01377D]">{displayBrand}</span>
             </div>
 
             {user && (
@@ -382,15 +389,19 @@ export const Layout = ({ children }) => {
           {/* Sidebar Header */}
           <div className="flex h-16 flex-shrink-0 items-center justify-between border-b border-cyan-100/80 px-4">
             <div className={`flex items-center ${isSidebarCollapsed ? 'flex-1 justify-center' : 'gap-2'}`}>
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white shadow-sm">
-                <Activity className="h-5 w-5" />
-              </div>
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-9 w-9 rounded-xl border border-cyan-100 object-cover shadow-sm" />
+              ) : (
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white shadow-sm">
+                  <Activity className="h-5 w-5" />
+                </div>
+              )}
               <span
                 className={`overflow-hidden whitespace-nowrap text-sm font-semibold text-slate-800 transition-all duration-200 ${
                   isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-1' : 'max-w-[220px] opacity-100 translate-x-0'
                 }`}
               >
-                Clinic and Laboratory
+                {displayBrand}
               </span>
             </div>
             <div className="flex items-center gap-1">
@@ -590,8 +601,12 @@ export const Layout = ({ children }) => {
             </Button>
             
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-green-600" />
-              <span className="text-lg font-semibold text-gray-900">Clinic and Laboratory</span>
+              {branding.logoUrl ? (
+                <img src={branding.logoUrl} alt={`${displayBrand} logo`} className="h-7 w-7 rounded-md object-cover" />
+              ) : (
+                <Activity className="w-6 h-6 text-green-600" />
+              )}
+              <span className="text-lg font-semibold text-gray-900">{displayBrand}</span>
             </div>
 
             {/* Mobile User Actions */}
@@ -622,7 +637,7 @@ export const Layout = ({ children }) => {
         <footer className="border-t border-cyan-100/80 bg-gradient-to-r from-[#edf5ff] to-[#e6f0ff]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 ">
             <p className="text-center text-sm text-slate-700 ">
-              © 2025 Clinic and Laboratory. All rights reserved.
+              © 2025 {displayBrand}. All rights reserved.
             </p>
           </div>
         </footer>

@@ -1,10 +1,13 @@
 import React from "react";
 import { Star, Info, Mail, Rocket } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useBranding } from "../contexts/BrandingContext";
 
 export const Navbar = () => {
+  const { branding } = useBranding();
   const linkClasses =
     "text-green-700 hover:text-green-800 transition-colors font-medium";
+  const displayBrand = branding.brandName;
 
   const scrollTo = (e, id) => {
     e.preventDefault();
@@ -19,7 +22,7 @@ export const Navbar = () => {
       {/* Desktop Navbar */}
       <nav className="w-full flex items-center justify-between px-6 md:px-12 lg:px-20 xl:px-32 py-4 sticky top-0 z-50 hidden md:flex bg-white shadow-sm border-b h-screen border-gray-100">
         {/* Left - Logo */}
-        <h1 className="text-3xl font-bold text-green-700">Clinic and Laboratory</h1>
+        <h1 className="text-3xl font-bold text-green-700">{displayBrand}</h1>
 
         {/* Center - Navigation Links */}
         <div className="flex items-center space-x-8">

@@ -13,6 +13,14 @@ class ClinicSetting extends Model
         'close_time',
         'working_days',
         'appointment_interval',
+        'brand_name',
+        'brand_short_name',
+        'system_title',
+        'system_subtitle',
+        'brand_logo_path',
+        'footer_description',
+        'contact_email',
+        'contact_phone',
     ];
 
     protected $casts = [

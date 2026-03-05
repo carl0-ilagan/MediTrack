@@ -5,6 +5,14 @@ export const getClinicSettings = async () => {
 };
 
 export const saveClinicSettings = async (data) => {
+  const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+  if (isFormData) {
+    return api.post('/api/admin/clinic/settings', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
   return api.post('/api/admin/clinic/settings', data);
 };
 
@@ -22,4 +30,8 @@ export const deleteClinicClosure = async (id) => {
 
 export const getClinicMeta = async () => {
   return api.get('/api/clinic/meta');
+};
+
+export const getClinicBranding = async () => {
+  return api.get('/api/clinic/branding');
 };

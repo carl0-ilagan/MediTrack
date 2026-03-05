@@ -1,0 +1,43 @@
+# Clinic System Development Rules
+
+- Do not change the current cors.php
+- Do not change the current sanctum.php
+
+## CORS Configuration
+- NEVER modify cors.php paths without explicit user permission
+- ALWAYS ask before making any config changes
+- Keep CORS paths as: ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', 'register']
+- All public endpoints MUST be under /api/ prefix for CORS coverage
+- DO NOT create endpoints outside /api/ unless they have proper CORS middleware
+
+## API Endpoints
+- Medical certificate endpoints must be under /api/medcert/
+- Public endpoints that need CORS must be wrapped in web middleware and under /api/
+- Authentication endpoints: POST /api/auth/login, POST /api/auth/register
+- Protected routes require auth:sanctum middleware
+
+## Code Quality
+- Always add return type hints to controller methods: `: \Illuminate\Http\JsonResponse`
+- Add variable type hints for Auth::user(): `/** @var \App\Models\User $user */`
+- Use Auth::user() instead of auth()->user() for better IDE recognition
+- Disable AuthorizesRequests in constructors - comment out authorizeResource() calls
+
+## Request Validation
+- Keep FormRequest classes only if they're actively used
+- Remove unused request files (StoreDocumentRequest, UpdateDocumentRequest, StorePatientRequest, UpdatePatientRequest)
+- Required FormRequests: LoginUserRequest, RegisterUserRequest, StoreAppointmentRequest, UpdateAppointmentRequest, StoreMedCertRequest, UpdateMedCertRequest
+
+## Database & Models
+- Always check Model relationships are properly defined
+- Use conditional relationship loading to avoid null FK issues
+- Load approver relationship only when approved_by is not null
+
+## Frontend Integration
+- Certificate type endpoint must be: GET /api/medcert/types (PUBLIC, no auth required)
+- All API calls must use the configured axios instance with credentials
+- Medical certificate types list must be loaded before showing dropdown
+
+## Documentation
+- Before making breaking changes, ask user for permission
+- Always verify impact of changes across controllers and frontend
+- Log all config modifications for audit trail

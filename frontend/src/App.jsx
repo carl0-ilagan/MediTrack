@@ -1,6 +1,7 @@
 import React, { useEffect, Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext"; // Import useAuth here
+import { BrandingProvider } from "./contexts/BrandingContext";
 import "./App.css";
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -93,8 +94,9 @@ const App = () => {
 
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
+      <BrandingProvider>
+        <AuthProvider>
+          <Routes>
           {/* Public routes without Layout */}
           <Route path="/" element={<Home />} />
           
@@ -388,8 +390,8 @@ const App = () => {
 
           {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <div style={{ 
+          </Routes>
+          <div style={{ 
           position: 'fixed', 
           top: '50%', 
           left: '50%', 
@@ -424,8 +426,9 @@ const App = () => {
               },
             }}
           />
-        </div>
-      </AuthProvider>
+          </div>
+        </AuthProvider>
+      </BrandingProvider>
     </Router>
   );
 };

@@ -25,6 +25,7 @@ Route::middleware(['web'])->group(function () {
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/med-certs/{hash}/verify', [MedCertController::class, 'publicVerify']);
+    Route::get('/clinic/branding', [ClinicController::class, 'branding']);
     
     // Public medical certificate types endpoint (for dropdown - no auth required)
     Route::get('/medcert/types', [MedcertReasonController::class, 'index']);

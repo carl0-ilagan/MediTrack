@@ -23,8 +23,10 @@ import { listMedcertReasons, addMedcertReason, deleteMedcertReason, updateMedcer
 import { listDocumentTypes, addDocumentType, deleteDocumentType, updateDocumentType, toggleDocumentTypeStatus } from '../../api/DocumentTypes';
 import { toast } from 'sonner';
 import AdminPageSkeleton from '../../components/admin/AdminPageSkeleton';
+import { useBranding } from '../../contexts/BrandingContext';
 
 export const Settings = () => {
+  const { reloadBranding, applyBrandingFromSettings } = useBranding();
   const [initialLoading, setInitialLoading] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [smsNotifications, setSmsNotifications] = useState(false);
@@ -48,8 +50,17 @@ export const Settings = () => {
   const [openTime, setOpenTime] = useState('08:00');
   const [closeTime, setCloseTime] = useState('17:00');
   const [workingDays, setWorkingDays] = useState(['mon','tue','wed','thu','fri']);
-  const [showClinicHoursModal, setShowClinicHoursModal] = useState(false);
   const [appointmentInterval, setAppointmentInterval] = useState(15); // minutes
+  const [brandName, setBrandName] = useState('');
+  const [brandShortName, setBrandShortName] = useState('');
+  const [systemTitle, setSystemTitle] = useState('');
+  const [systemSubtitle, setSystemSubtitle] = useState('');
+  const [footerDescription, setFooterDescription] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [brandLogoUrl, setBrandLogoUrl] = useState('');
+  const [brandLogoFile, setBrandLogoFile] = useState(null);
+  const [removeBrandLogo, setRemoveBrandLogo] = useState(false);
 
   // Closures state
   const [closureDate, setClosureDate] = useState('');
@@ -68,6 +79,16 @@ export const Settings = () => {
         if (settings.close_time) setCloseTime(settings.close_time.slice(0,5));
         if (settings.working_days) setWorkingDays(settings.working_days);
         if (settings.appointment_interval) setAppointmentInterval(Number(settings.appointment_interval));
+        setBrandName(settings.brand_name || '');
+        setBrandShortName(settings.brand_short_name || '');
+        setSystemTitle(settings.system_title || '');
+        setSystemSubtitle(settings.system_subtitle || '');
+        setFooterDescription(settings.footer_description || '');
+        setContactEmail(settings.contact_email || '');
+        setContactPhone(settings.contact_phone || '');
+        setBrandLogoUrl(settings.brand_logo_url || '');
+        setBrandLogoFile(null);
+        setRemoveBrandLogo(false);
       }
 
       const c = await listClinicClosures();
@@ -102,14 +123,37 @@ export const Settings = () => {
 
   const handleSaveClinic = async () => {
     try {
-      const payload = {
-        open_time: openTime,
-        close_time: closeTime,
-        working_days: workingDays,
-        appointment_interval: appointmentInterval,
-      };
+      const payload = new FormData();
+      payload.append('open_time', openTime);
+      payload.append('close_time', closeTime);
+      payload.append('appointment_interval', String(appointmentInterval));
+      workingDays.forEach((day, index) => payload.append(`working_days[${index}]`, day));
+      payload.append('brand_name', brandName || '');
+      payload.append('brand_short_name', brandShortName || '');
+      payload.append('system_title', systemTitle || '');
+      payload.append('system_subtitle', systemSubtitle || '');
+      payload.append('footer_description', footerDescription || '');
+      payload.append('contact_email', contactEmail || '');
+      payload.append('contact_phone', contactPhone || '');
+      if (brandLogoFile) {
+        payload.append('brand_logo', brandLogoFile);
+      }
+      if (removeBrandLogo) {
+        payload.append('remove_brand_logo', '1');
+      }
+
       const res = await saveClinicSettings(payload);
       toast.success('Clinic settings saved');
+      const refreshed = res.data?.data?.settings || res.data?.settings || null;
+      if (refreshed) {
+        applyBrandingFromSettings(refreshed);
+      }
+      if (refreshed?.brand_logo_url !== undefined) {
+        setBrandLogoUrl(refreshed.brand_logo_url || '');
+      }
+      setBrandLogoFile(null);
+      setRemoveBrandLogo(false);
+      await reloadBranding();
       if (res.data?.data?.settings) {
         // update local state if needed
       }
@@ -523,16 +567,132 @@ export const Settings = () => {
                   <SettingsIcon className="w-5 h-5 text-[#009DD1]" />
                   Clinic Hours
                 </CardTitle>
-                <CardDescription className="text-[#009DD1]">Manage clinic hours and closure exceptions</CardDescription>
+                <CardDescription className="text-[#009DD1]">Manage clinic hours, branding, and closure exceptions</CardDescription>
               </div>
               <div className="w-full sm:w-auto">
                 <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto">
-                  <Button onClick={() => setShowClinicHoursModal(true)} className="w-full bg-[#01377D] text-white hover:bg-[#012b55] sm:w-auto">Edit Hours</Button>
+                  <Button onClick={handleSaveClinic} className="w-full bg-[#01377D] text-white hover:bg-[#012b55] sm:w-auto">Save Changes</Button>
                   <Button onClick={() => setShowClosureModal(true)} className="w-full bg-[#009DD1] text-white hover:bg-[#007bb0] sm:w-auto">Add Closure</Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-[#01377D]">Clinic Hours & Branding</h4>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <Label className="text-sm">Opening Time</Label>
+                    <Input type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Closing Time</Label>
+                    <Input type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Appointment Interval (minutes)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={appointmentInterval}
+                      onChange={(e) => setAppointmentInterval(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm">Regular Working Days</Label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => toggleDay(d)}
+                        className={`rounded px-3 py-1 text-xs ${
+                          workingDays.includes(d) ? 'bg-[#01377D] text-white' : 'bg-[#97E7F5] text-[#01377D]'
+                        }`}
+                      >
+                        {d.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <Label className="text-sm">Header Name</Label>
+                    <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Short Name</Label>
+                    <Input value={brandShortName} onChange={(e) => setBrandShortName(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-sm">System Title</Label>
+                    <Input value={systemTitle} onChange={(e) => setSystemTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-sm">System Subtitle</Label>
+                    <Input value={systemSubtitle} onChange={(e) => setSystemSubtitle(e.target.value)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-sm">Footer Description</Label>
+                    <Input value={footerDescription} onChange={(e) => setFooterDescription(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Contact Email</Label>
+                    <Input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Contact Phone</Label>
+                    <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm">Logo (optional)</Label>
+                  <Input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => setBrandLogoFile(e.target.files?.[0] || null)}
+                  />
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      id="remove-brand-logo-inline"
+                      type="checkbox"
+                      checked={removeBrandLogo}
+                      onChange={(e) => setRemoveBrandLogo(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="remove-brand-logo-inline" className="text-xs text-[#4A6A8F]">
+                      Remove current logo
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveClinic} className="bg-[#26B170] hover:bg-[#7ED348] text-white">Save Clinic Settings</Button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-cyan-100 bg-cyan-50/40 p-3">
+                <h4 className="text-sm font-semibold text-[#01377D]">Branding Preview</h4>
+                <div className="mt-2 flex items-center gap-3">
+                  {brandLogoUrl && !removeBrandLogo ? (
+                    <img src={brandLogoUrl} alt="Clinic logo" className="h-12 w-12 rounded-lg border border-cyan-100 object-cover" />
+                  ) : (
+                    <div className="grid h-12 w-12 place-items-center rounded-lg border border-cyan-100 bg-white text-[#009DD1]">
+                      <SettingsIcon className="h-5 w-5" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-sm font-medium text-[#01377D]">{brandName}</div>
+                    <div className="text-xs text-[#009DD1]">{systemTitle}</div>
+                    <div className="text-xs text-[#4A6A8F]">{systemSubtitle}</div>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-4">
                 <h4 className="font-semibold text-[#01377D]">Closures / Exceptions</h4>
                 <ul className="mt-2 space-y-2">
@@ -575,53 +735,6 @@ export const Settings = () => {
                         // handleAddClosure shows toast on error
                       }
                     }} className="bg-[#26B170] hover:bg-[#7ED348] text-white">Add Closure</Button>
-                  </div>
-                </div>
-              </div>
-            </ModalPortal>
-          )}
-          {/* Clinic Hours Modal */}
-          {showClinicHoursModal && (
-            <ModalPortal>
-              <div className={modalBackdropClass}>
-                <div className={`${modalPanelClass} max-w-lg`}>
-                  <h3 className="text-lg font-semibold mb-2 text-[#01377D]">Edit Clinic Hours</h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div>
-                      <Label className="text-sm">Opening Time</Label>
-                      <Input type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Closing Time</Label>
-                      <Input type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Appointment Interval (minutes)</Label>
-                      <Input type="number" min={1} value={appointmentInterval} onChange={(e) => setAppointmentInterval(Number(e.target.value))} />
-                    </div>
-                    <div>
-                      <Label className="text-sm">Regular Working Days</Label>
-                      <div className="flex gap-2 flex-wrap mt-2">
-                        {['mon','tue','wed','thu','fri','sat','sun'].map((d) => (
-                          <button key={d} type="button" onClick={() => toggleDay(d)} className={`px-3 py-1 rounded ${workingDays.includes(d) ? 'bg-[#01377D] text-white' : 'bg-[#97E7F5] text-[#01377D]'}`}>
-                            {d.toUpperCase()}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col-reverse gap-2 mt-5 sm:flex-row sm:justify-end">
-                    <Button variant="outline" onClick={() => setShowClinicHoursModal(false)}>Cancel</Button>
-                    <Button onClick={async () => {
-                      try {
-                        await handleSaveClinic();
-                        setShowClinicHoursModal(false);
-                        toast.success('Clinic hours saved');
-                      } catch (err) {
-                        console.error(err);
-                        toast.error('Failed to save clinic hours');
-                      }
-                    }} className="bg-[#26B170] hover:bg-[#7ED348] text-white">Save</Button>
                   </div>
                 </div>
               </div>
