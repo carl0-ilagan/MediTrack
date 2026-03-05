@@ -1,5 +1,5 @@
 // ManageUsers.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
@@ -7,15 +7,24 @@ import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Search, Edit, UserCheck, UserX, AlertCircle, Users, Eye, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Edit, UserCheck, UserX, AlertCircle, Users, Eye, Sparkles, ChevronLeft, ChevronRight, Filter, ChevronDown, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../api/axios';
 import AdminPageSkeleton from '../../components/admin/AdminPageSkeleton';
 
 export const ManageUsers = () => {
+  const ROLE_OPTIONS = useMemo(() => ([
+    { value: 'all', label: 'All Roles' },
+    { value: 'admin', label: 'Admin' },
+    { value: 'clinician', label: 'Clinician' },
+    { value: 'patient', label: 'Patient' },
+  ]), []);
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [isRoleFilterOpen, setIsRoleFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [editingUser, setEditingUser] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -25,6 +34,8 @@ export const ManageUsers = () => {
   // View user modal
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewUser, setViewUser] = useState(null);
+  const roleFilterMenuRef = useRef(null);
+  const filterLoadingTimeoutRef = useRef(null);
 
   // Fetch users from API
   useEffect(() => {
@@ -33,7 +44,11 @@ export const ManageUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      setLoading(true);
+      if (initialLoading) {
+        setInitialLoading(true);
+      } else {
+        setTableLoading(true);
+      }
       const response = await api.get('/api/v1/admin/users');
       const usersData = response.data.data || [];
       setUsers(usersData);
@@ -48,7 +63,8 @@ export const ManageUsers = () => {
         toast.error(error.response?.data?.message || 'Failed to load users');
       }
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setTableLoading(false);
     }
   };
 
@@ -105,10 +121,15 @@ export const ManageUsers = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter((user) => {
+    const query = searchQuery.toLowerCase();
+    const name = user.name?.toLowerCase() || '';
+    const email = user.email?.toLowerCase() || '';
+    const role = (user.role || '').toLowerCase();
+    const matchesSearch = !query || name.includes(query) || email.includes(query);
+    const matchesRole = roleFilter === 'all' || role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
   const usersPerPage = 10;
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
   const startIndex = (currentPage - 1) * usersPerPage;
@@ -116,13 +137,42 @@ export const ManageUsers = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, roleFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    return () => {
+      if (filterLoadingTimeoutRef.current) {
+        clearTimeout(filterLoadingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (roleFilterMenuRef.current && !roleFilterMenuRef.current.contains(event.target)) {
+        setIsRoleFilterOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsRoleFilterOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   const getRoleBadgeColor = (role) => {
     const colors = {
@@ -134,7 +184,18 @@ export const ManageUsers = () => {
     return colors[role] || colors.default;
   };
 
-  if (loading) {
+  const selectedRoleLabel = ROLE_OPTIONS.find((role) => role.value === roleFilter)?.label || 'All Roles';
+  const triggerTableFilterLoading = () => {
+    setTableLoading(true);
+    if (filterLoadingTimeoutRef.current) {
+      clearTimeout(filterLoadingTimeoutRef.current);
+    }
+    filterLoadingTimeoutRef.current = setTimeout(() => {
+      setTableLoading(false);
+    }, 180);
+  };
+
+  if (initialLoading) {
     return <AdminPageSkeleton variant="table" rows={5} />;
   }
 
@@ -153,69 +214,71 @@ export const ManageUsers = () => {
         <div className="relative mb-6 overflow-hidden rounded-2xl border border-cyan-100 bg-gradient-to-r from-slate-900 via-blue-900 to-cyan-700 p-5 text-white shadow-lg">
           <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-10 left-20 h-36 w-36 rounded-full bg-cyan-300/20 blur-2xl" />
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs">
+            <Sparkles className="h-3.5 w-3.5" />
+            Access control overview
+          </div>
           <h2 className="text-2xl font-semibold">Manage Users</h2>
           <p className="max-w-2xl text-sm text-cyan-100/90">Manage account roles, activation status, and user details with a cleaner and more focused admin workspace.</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-4">
-          <Card className="border-slate-200/80 bg-white/95 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="border-slate-200/80 bg-gradient-to-b from-white to-slate-50 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Total Users</p>
-                  <p className="text-3xl font-bold text-slate-900">{users.length}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Total Users</p>
+                  <p className="mt-3 text-3xl font-semibold text-slate-900">{users.length}</p>
+                  <p className="mt-1 text-xs text-slate-500">All accounts in the system</p>
                 </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50">
-                  <Users className="h-5 w-5 text-blue-600" />
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-700">
+                  <Users className="h-5 w-5" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/80 bg-white/95 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+          <Card className="border-emerald-200/60 bg-gradient-to-b from-white to-emerald-50/40 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Patients</p>
-                  <p className="text-3xl font-bold text-slate-900">
-                    {users.filter(u => u.role === 'patient').length}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">Patients</p>
+                  <p className="mt-3 text-3xl font-semibold text-emerald-700">{users.filter(u => u.role === 'patient').length}</p>
+                  <p className="mt-1 text-xs text-emerald-700/80">Registered patient accounts</p>
                 </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50">
-                  <Users className="h-5 w-5 text-emerald-600" />
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <Users className="h-5 w-5" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/80 bg-white/95 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+          <Card className="border-cyan-200/60 bg-gradient-to-b from-white to-cyan-50/40 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Clinicians</p>
-                  <p className="text-3xl font-bold text-slate-900">
-                    {users.filter(u => u.role === 'clinician').length}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700">Clinicians</p>
+                  <p className="mt-3 text-3xl font-semibold text-cyan-700">{users.filter(u => u.role === 'clinician').length}</p>
+                  <p className="mt-1 text-xs text-cyan-700/80">Active medical staff accounts</p>
                 </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-50">
-                  <Users className="h-5 w-5 text-cyan-600" />
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-100 text-cyan-700">
+                  <Users className="h-5 w-5" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/80 bg-white/95 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+          <Card className="border-violet-200/60 bg-gradient-to-b from-white to-violet-50/40 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Admins</p>
-                  <p className="text-3xl font-bold text-slate-900">
-                    {users.filter(u => u.role === 'admin').length}
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-700">Admins</p>
+                  <p className="mt-3 text-3xl font-semibold text-violet-700">{users.filter(u => u.role === 'admin').length}</p>
+                  <p className="mt-1 text-xs text-violet-700/80">Accounts with admin access</p>
                 </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50">
-                  <Users className="h-5 w-5 text-violet-600" />
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-100 text-violet-700">
+                  <Users className="h-5 w-5" />
                 </div>
               </div>
             </CardContent>
@@ -225,19 +288,88 @@ export const ManageUsers = () => {
         {/* Users Table */}
         <Card className="border-slate-200/80 bg-white/95 shadow-sm">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 relative">
+            <div className="flex flex-col items-stretch gap-3 md:flex-row md:items-center">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-slate-400" />
                 <Input
                   placeholder="Search users by name or email..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-11 border-slate-200 bg-white pl-10 text-sm focus:border-cyan-500 focus:ring-cyan-500"
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    triggerTableFilterLoading();
+                  }}
+                  className="h-11 border-slate-200 bg-white pl-10 pr-9 text-sm focus:border-cyan-500 focus:ring-cyan-500"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="Clear user search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
+              <div ref={roleFilterMenuRef} className="relative w-full md:w-52">
+                <button
+                  type="button"
+                  onClick={() => setIsRoleFilterOpen((prev) => !prev)}
+                  className="flex h-11 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 transition-all duration-200 hover:border-cyan-400 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  aria-expanded={isRoleFilterOpen}
+                  aria-haspopup="listbox"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    {selectedRoleLabel}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isRoleFilterOpen ? 'rotate-180' : 'rotate-0'}`} />
+                </button>
+                <div
+                  className={`absolute right-0 z-30 mt-2 w-full origin-top rounded-md border border-slate-200 bg-white p-1.5 shadow-lg transition-all duration-200 ${
+                    isRoleFilterOpen
+                      ? 'translate-y-0 scale-100 opacity-100'
+                      : 'pointer-events-none -translate-y-1 scale-95 opacity-0'
+                  }`}
+                  role="listbox"
+                >
+                  {ROLE_OPTIONS.map((role) => {
+                    const isActive = role.value === roleFilter;
+                    return (
+                      <button
+                        key={role.value}
+                        type="button"
+                        onClick={() => {
+                          setRoleFilter(role.value);
+                          setIsRoleFilterOpen(false);
+                          triggerTableFilterLoading();
+                        }}
+                        className={`flex w-full items-center justify-between rounded px-2.5 py-2 text-left text-sm transition ${
+                          isActive
+                            ? 'bg-cyan-50 text-cyan-700'
+                            : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{role.label}</span>
+                        {isActive && <Check className="h-4 w-4" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-slate-500">
+              Showing <span className="font-medium text-slate-700">{filteredUsers.length}</span> user{filteredUsers.length === 1 ? '' : 's'}
+              {roleFilter !== 'all' ? ` • Filtered: ${selectedRoleLabel}` : ''}
             </div>
           </CardHeader>
           <CardContent className="p-0">
+            {tableLoading && (
+              <div className="mx-3 mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50 px-3 py-1 text-xs text-cyan-700">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Updating table...
+              </div>
+            )}
             {filteredUsers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="mb-4 h-12 w-12 text-slate-300" />

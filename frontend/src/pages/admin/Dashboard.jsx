@@ -52,7 +52,10 @@ export const AdminDashboard = () => {
       value: stats.stats.totalUsers.toLocaleString(), 
       change: `${stats.stats.userGrowth > 0 ? '+' : ''}${stats.stats.userGrowth}%`, 
       icon: Users, 
-      iconWrap: 'bg-blue-50 text-blue-600',
+      iconWrap: 'bg-slate-100 text-slate-700',
+      cardClass: 'border-slate-200/80 bg-gradient-to-b from-white to-slate-50',
+      textClass: 'text-slate-900',
+      subLabel: 'All registered users',
       positive: stats.stats.userGrowth >= 0
     },
     { 
@@ -60,21 +63,30 @@ export const AdminDashboard = () => {
       value: stats.stats.todayAppointments.toLocaleString(), 
       change: `${stats.stats.totalAppointments} total`, 
       icon: Calendar, 
-      iconWrap: 'bg-emerald-50 text-emerald-600'
+      iconWrap: 'bg-cyan-100 text-cyan-700',
+      cardClass: 'border-cyan-200/60 bg-gradient-to-b from-white to-cyan-50/40',
+      textClass: 'text-cyan-700',
+      subLabel: 'Scheduled for today',
     },
     { 
       title: 'Pending MedCerts', 
       value: stats.stats.pendingMedCerts.toLocaleString(), 
       change: 'Awaiting review', 
       icon: FileText, 
-      iconWrap: 'bg-amber-50 text-amber-600'
+      iconWrap: 'bg-amber-100 text-amber-700',
+      cardClass: 'border-amber-200/60 bg-gradient-to-b from-white to-amber-50/40',
+      textClass: 'text-amber-700',
+      subLabel: 'Queue for clinician review',
     },
     { 
       title: 'Completed Appointments', 
       value: stats.stats.completedAppointments.toLocaleString(), 
       change: 'All time', 
       icon: CheckCircle, 
-      iconWrap: 'bg-violet-50 text-violet-600'
+      iconWrap: 'bg-emerald-100 text-emerald-700',
+      cardClass: 'border-emerald-200/60 bg-gradient-to-b from-white to-emerald-50/40',
+      textClass: 'text-emerald-700',
+      subLabel: 'Finished visits',
     },
   ];
 
@@ -120,22 +132,25 @@ export const AdminDashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="border-slate-200/80 bg-white/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">{stat.title}</CardTitle>
-                <div className={`grid h-9 w-9 place-items-center rounded-xl ${stat.iconWrap}`}>
-                  <Icon className="h-4.5 w-4.5" />
+            <Card key={stat.title} className={`${stat.cardClass} shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md`}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{stat.title}</p>
+                    <p className={`mt-3 text-3xl font-semibold ${stat.textClass}`}>{stat.value}</p>
+                    <p className="mt-1 text-xs text-slate-500">{stat.subLabel}</p>
+                    <p className={`mt-2 text-xs ${stat.positive === false ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {stat.change}
+                    </p>
+                  </div>
+                  <div className={`grid h-10 w-10 place-items-center rounded-xl ${stat.iconWrap}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-semibold tracking-tight text-slate-900">{stat.value}</div>
-                <p className={`mt-1 text-xs ${stat.positive === false ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  {stat.change}
-                </p>
               </CardContent>
             </Card>
           );
